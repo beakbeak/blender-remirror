@@ -79,86 +79,60 @@ def nextEdgeCW (v, e_prev):
     raise ValueError ("len (edge.link_loops) != 1 or 2")
 
 
-def edgeIndex (next_edge, v, e_start, index):
-  edge = e_start
-  while index > 0:
-    edge = next_edge (v, edge)
-    index = index - 1
-  return edge
-
-def edgeIndexCCW (v, e_start, index):
-  return edgeIndex (nextEdgeCCW, v, e_start, index)
-
-def edgeIndexCW (v, e_start, index):
-  return edgeIndex (nextEdgeCW, v, e_start, index)
-
-
-def followPath (edge_index, v, e_start, path):
-  for index, unused in path:
-    e_start = edge_index (v, e_start, index)
-    v = e_start.other_vert (v)
-  return v
-
-def followPathCCW (v, e_start, path):
-  return followPath (edgeIndexCCW, v, e_start, path)
-
-def followPathCW (v, e_start, path):
-  return followPath (edgeIndexCW, v, e_start, path)
-
-
 # visit all unvisited subvertices of a particular vertex in the selected cycle
-def visitVerts (v, e_start, visitor):
-  index = 0
-  edge = e_start
+def visitMirrorVerts (v_start, e_start, visitor):
+  er = e_start
+  el = e_start
+  vr = v_start
+  vl = v_start
   path = []
 
   while True:
-    index += 1
-    edge = nextEdgeCCW (v, edge)
+    er = nextEdgeCCW (vr, er)
+    el = nextEdgeCW (vl, el)
 
-    if edge.select:
+    if er.select:
       return
 
-    v = edge.other_vert (v)
-    if v.tag:
-      v = edge.other_vert (v)
+    vr = er.other_vert (vr)
+    if vr.tag:
+      vr = er.other_vert (vr)
       continue
+    vl = el.other_vert (vl)
 
-    path.append ((index, edge))
-    visitor (v, path)
-    v.tag = True
+    path.append ((er, el))
+    visitor (vr, vl)
+    vr.tag = True
 
-    index = 0
     while path:
-      index += 1
-      edge = nextEdgeCCW (v, edge)
+      er = nextEdgeCCW (vr, er)
+      el = nextEdgeCW (vl, el)
 
-      if edge is path[-1][1] or edge.select:
-        index = path[-1][0]
-        edge = path[-1][1]
-        v = edge.other_vert (v)
+      if er is path[-1][0] or er.select:
+        er = path[-1][0]
+        el = path[-1][1]
+        vr = er.other_vert (vr)
+        vl = el.other_vert (vl)
         del path[-1]
         continue
 
-      v = edge.other_vert (v)
-      if v.tag or v.select:
-        v = edge.other_vert (v)
+      vr = er.other_vert (vr)
+      if vr.tag or vr.select:
+        vr = er.other_vert (vr)
         continue
+      vl = el.other_vert (vl)
 
-      path.append ((index, edge))
-      visitor (v, path)
-      v.tag = True
-
-      index = 0
+      path.append ((er, el))
+      visitor (vr, vl)
+      vr.tag = True
 
 def updateVerts (v_start, e_start):
-  def updateVert (v_original, path):
-    v_mirror = followPathCW (v_start, e_start, path)
-    v_mirror.co.x = -v_original.co.x
-    v_mirror.co.y = v_original.co.y
-    v_mirror.co.z = v_original.co.z
+  def updateVert (v_right, v_left):
+    v_left.co.x = -v_right.co.x
+    v_left.co.y = v_right.co.y
+    v_left.co.z = v_right.co.z
 
-  visitVerts (v_start, e_start, updateVert)
+  visitMirrorVerts (v_start, e_start, updateVert)
 
 
 def startingVertex (edge):
