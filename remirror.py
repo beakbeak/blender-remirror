@@ -1,10 +1,13 @@
+# <pep8-80 compliant>
+
 bl_info = {
   "name": "Remirror",
   "author": "Philip Lafleur",
-  "version": (1, 0),
+  "version": (0, 1),
   "blender": (2, 6, 3),
   "location": "View3D > Tools",
-  "description": "Update symmetry of a mirrored object without changing topology.",
+  "description": ("Update symmetry of a mirrored object without "
+                  "changing topology."),
   "warning": "",
   "wiki_url": "",
   "tracker_url": "",
@@ -16,30 +19,27 @@ import bmesh
 class Remirror (bpy.types.Operator):
   bl_idname = "mesh.remirror"
   bl_label = "Remirror"
-  bl_description = "Update symmetry of a mirrored object without changing topology"
+  bl_description = ("Update symmetry of a mirrored object without "
+                    "changing topology")
+  bl_options = {'REGISTER', 'UNDO'}
 
   @classmethod
   def poll (cls, context):
     obj = context.active_object
     return (obj and obj.type == 'MESH' and context.mode == 'EDIT_MESH')
 
-  def invoke (self, context, event):
-    self.action (context)
-    return {'FINISHED'}
-
   def execute (self, context):
     self.action (context)
     return {'FINISHED'}
 
   def action (self, context):
-#    save_global_undo = bpy.context.user_preferences.edit.use_global_undo
-#    bpy.context.user_preferences.edit.use_global_undo = False
     obj = bpy.context.active_object
     mesh = obj.data
-    remirror (mesh)
-#    bpy.context.user_preferences.edit.use_global_undo = save_global_undo
-#    bpy.ops.object.editmode_toggle()
-#    bpy.ops.object.editmode_toggle()
+
+    try:
+      remirror (mesh)
+    except Exception as e:
+      self.report ({'ERROR'}, str (e))
 
 
 def nextEdgeCCW (v, e_prev):
@@ -58,7 +58,7 @@ def nextEdgeCCW (v, e_prev):
         return edge
 
   else:
-    raise ValueError ("len (edge.link_loops) != 1 or 2")
+    raise ValueError ("Encountered edge with more than 2 faces attached")
 
 def nextEdgeCW (v, e_prev):
   if len (e_prev.link_loops) == 2:
@@ -76,7 +76,7 @@ def nextEdgeCW (v, e_prev):
         return edge
 
   else:
-    raise ValueError ("len (edge.link_loops) != 1 or 2")
+    raise ValueError ("Encountered edge with more than 2 faces attached")
 
 
 # visit all unvisited subvertices of a particular vertex in the selected cycle
@@ -117,6 +117,11 @@ def updateVerts (v_start, e_start):
 
   visitMirrorVerts (v_start, e_start, updateVert)
 
+def checkVerts (v_start, e_start):
+  def checkVert (v_right, v_left):
+    pass
+
+  visitMirrorVerts (v_start, e_start, checkVert)
 
 def startingVertex (edge):
   if len (edge.link_loops) != 2:
@@ -132,20 +137,34 @@ def startingVertex (edge):
 
 def remirror (mesh):
   bm = bmesh.from_edit_mesh (mesh)
+
+  try:
+    for v in bm.verts:
+      v.tag = False
+
+    for e in bm.edges:
+      if e.select:
+        checkVerts (startingVertex (e), e)
+
+    for v in bm.verts:
+      v.tag = False
+
+    for e in bm.edges:
+      if e.select:
+        updateVerts (startingVertex (e), e)
+
+  except:
+    for v in bm.verts:
+      v.tag = False
+    raise
+
   for v in bm.verts:
     v.tag = False
     if v.select:
       v.co.x = 0.
 
-  for e in bm.edges:
-    if e.select:
-      updateVerts (startingVertex (e), e)
-
-  for v in bm.verts:
-    v.tag = False
-
-  del bm
-  mesh.update (calc_tessface = True)
+#  del bm
+#  mesh.update (calc_tessface = True)
 
 
 #def panel_func(self, context):
