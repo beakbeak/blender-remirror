@@ -85,17 +85,22 @@ def visitMirrorVerts (v_start, e_start, visitor):
   el = e_start
   vr = v_start
   vl = v_start
-  path = []
+  path = [(er, el)]
 
-  while True:
+  while path:
     er = nextEdgeCCW (vr, er)
     el = nextEdgeCW (vl, el)
 
-    if er.select:
-      return
+    if er is path[-1][0] or er.select:
+      er = path[-1][0]
+      el = path[-1][1]
+      vr = er.other_vert (vr)
+      vl = el.other_vert (vl)
+      del path[-1]
+      continue
 
     vr = er.other_vert (vr)
-    if vr.tag:
+    if vr.tag or vr.select:
       vr = er.other_vert (vr)
       continue
     vl = el.other_vert (vl)
@@ -103,28 +108,6 @@ def visitMirrorVerts (v_start, e_start, visitor):
     path.append ((er, el))
     visitor (vr, vl)
     vr.tag = True
-
-    while path:
-      er = nextEdgeCCW (vr, er)
-      el = nextEdgeCW (vl, el)
-
-      if er is path[-1][0] or er.select:
-        er = path[-1][0]
-        el = path[-1][1]
-        vr = er.other_vert (vr)
-        vl = el.other_vert (vl)
-        del path[-1]
-        continue
-
-      vr = er.other_vert (vr)
-      if vr.tag or vr.select:
-        vr = er.other_vert (vr)
-        continue
-      vl = el.other_vert (vl)
-
-      path.append ((er, el))
-      visitor (vr, vl)
-      vr.tag = True
 
 def updateVerts (v_start, e_start):
   def updateVert (v_right, v_left):
