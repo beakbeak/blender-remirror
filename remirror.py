@@ -123,17 +123,15 @@ def checkVerts (v_start, e_start):
 
   visitMirrorVerts (v_start, e_start, checkVert)
 
-def startingVertex (edge):
+
+def startingVertex (edge, axis = 0):
   if len (edge.link_loops) != 2:
-    raise ValueError ("edge with loops != 2 selected")
+    raise ValueError ("Number of faces attached to selected edge is not 2")
 
-  if edge.link_loops[0].face.calc_center_median ().x > 0.:
-    return edge.link_loops[0].vert
-  elif edge.link_loops[1].face.calc_center_median ().x > 0.:
-    return edge.link_loops[1].vert
-  else:
-    raise ValueError ("edge with both connected faces' x <= 0 selected")
+  loops = sorted (edge.link_loops,
+                  key = lambda loop: loop.face.calc_center_median ()[axis])
 
+  return loops[-1].vert
 
 def remirror (mesh):
   bm = bmesh.from_edit_mesh (mesh)
