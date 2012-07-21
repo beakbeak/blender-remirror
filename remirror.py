@@ -23,23 +23,26 @@ class Remirror (bpy.types.Operator):
                     "changing topology")
   bl_options = {'REGISTER', 'UNDO'}
 
+  source = bpy.props.EnumProperty (
+               name = "Source",
+               description = "Half of mesh to be mirrored on the other half",
+               items = (('POSITIVE', "Positive side", "Positive side"),
+                        ('NEGATIVE', "Negative side", "Negative side")))
+
   @classmethod
   def poll (cls, context):
     obj = context.active_object
     return (obj and obj.type == 'MESH' and context.mode == 'EDIT_MESH')
 
   def execute (self, context):
-    self.action (context)
-    return {'FINISHED'}
-
-  def action (self, context):
-    obj = bpy.context.active_object
-    mesh = obj.data
+    mesh = bpy.context.active_object.data
 
     try:
-      remirror (mesh)
+      remirror (mesh, self.source)
     except Exception as e:
       self.report ({'ERROR'}, str (e))
+
+    return {'FINISHED'}
 
 
 def nextEdgeCCW (v, e_prev):
@@ -109,13 +112,19 @@ def visitMirrorVerts (v_start, e_start, visitor):
     visitor (vr, vl)
     vr.tag = True
 
-def updateVerts (v_start, e_start):
-  def updateVert (v_right, v_left):
+def updateVerts (v_start, e_start, source = 'POSITIVE'):
+  def updatePositive (v_right, v_left):
     v_left.co.x = -v_right.co.x
     v_left.co.y = v_right.co.y
     v_left.co.z = v_right.co.z
 
-  visitMirrorVerts (v_start, e_start, updateVert)
+  def updateNegative (v_right, v_left):
+    v_right.co.x = -v_left.co.x
+    v_right.co.y = v_left.co.y
+    v_right.co.z = v_left.co.z
+
+  visitMirrorVerts (v_start, e_start,
+      updatePositive if source == 'POSITIVE' else updateNegative)
 
 def checkVerts (v_start, e_start):
   def checkVert (v_right, v_left):
@@ -133,7 +142,7 @@ def startingVertex (edge, axis = 0):
 
   return loops[-1].vert
 
-def remirror (mesh):
+def remirror (mesh, source = 'POSITIVE'):
   bm = bmesh.from_edit_mesh (mesh)
 
   try:
@@ -149,7 +158,7 @@ def remirror (mesh):
 
     for e in bm.edges:
       if e.select:
-        updateVerts (startingVertex (e), e)
+        updateVerts (startingVertex (e), e, source)
 
   except:
     for v in bm.verts:
