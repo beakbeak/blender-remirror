@@ -1,12 +1,10 @@
-# <pep8-80 compliant>
-
 bl_info = {
   "name": "Remirror",
   "author": "Philip Lafleur",
   "version": (0, 1),
   "blender": (2, 6, 3),
   "location": "View3D > Tools",
-  "description": ("Update symmetry of a mirrored object without "
+  "description": ("Update symmetry of a mirrored mesh without "
                   "changing topology."),
   "warning": "",
   "wiki_url": "",
@@ -17,11 +15,11 @@ import bpy
 import bmesh
 
 class Remirror (bpy.types.Operator):
-  bl_idname = "mesh.remirror"
-  bl_label = "Remirror"
-  bl_description = ("Update symmetry of a mirrored object without "
+  bl_idname      = "mesh.remirror"
+  bl_label       = "Remirror"
+  bl_description = ("Update symmetry of a mirrored mesh without "
                     "changing topology")
-  bl_options = {'REGISTER', 'UNDO'}
+  bl_options     = {'REGISTER', 'UNDO'}
 
   source = bpy.props.EnumProperty (
                name = "Source",
@@ -135,7 +133,8 @@ def updateVerts (v_start, e_start, source = 'POSITIVE'):
     v_right.co.y = v_left.co.y
     v_right.co.z = v_left.co.z
 
-  visitMirrorVerts (v_start, e_start,
+  visitMirrorVerts (
+      v_start, e_start,
       updatePositive if source == 'POSITIVE' else updateNegative)
 
 def checkVerts (v_start, e_start):
@@ -182,23 +181,12 @@ def remirror (mesh, source = 'POSITIVE'):
     if v.select:
       v.co.x = 0.
 
-#  del bm
-#  mesh.update (calc_tessface = True)
-
-
-#def panel_func(self, context):
-#  self.layout.label (text = "Inset Polygon:")
-#  self.layout.operator ("mesh.insetpoly", text="Inset Polygon")
-
 
 def register ():
   bpy.utils.register_class (Remirror)
-#  bpy.types.VIEW3D_PT_tools_meshedit.append(panel_func)
-
 
 def unregister ():
   bpy.utils.unregister_class (Remirror)
-#  bpy.types.VIEW3D_PT_tools_meshedit.remove(panel_func)
 
 
 if __name__ == "__main__":
