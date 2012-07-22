@@ -149,21 +149,24 @@ def visitMirrorVerts (v_start, e_start, visitor):
             raise ValueError (ERR_ASYMMETRY)
 
         vr = er.other_vert (vr)
+        vl = el.other_vert (vl)
+
         if vr is None:
             raise ValueError (ERR_BAD_PATH)
         if vr.tag:
+            if vl is None or not vl.tag:
+                raise ValueError (ERR_ASYMMETRY)
             vr = er.other_vert (vr)
+            vl = el.other_vert (vl)
             continue
 
-        vl = el.other_vert (vl)
-        if vl is None:
-            raise ValueError (ERR_BAD_PATH)
-        if vl.tag:
+        if vl is None or vl.tag:
             raise ValueError (ERR_ASYMMETRY)
 
         path.append ((er, el))
         visitor (vr, vl)
         vr.tag = True
+        vl.tag = True
 
 def updateVerts (v_start, e_start, axis, source):
     def updatePositive (v_right, v_left):
