@@ -44,7 +44,7 @@ class Remirror (bpy.types.Operator):
   @classmethod
   def poll (cls, context):
     obj = context.active_object
-    return (obj and obj.type == 'MESH' and context.mode == 'EDIT_MESH')
+    return (obj and obj.type == 'MESH' and context.mode == 'OBJECT')
 
   def execute (self, context):
     mesh = bpy.context.active_object.data
@@ -148,12 +148,6 @@ def updateVerts (v_start, e_start, axis, source):
       v_start, e_start,
       updatePositive if source == 'POSITIVE' else updateNegative)
 
-def checkVerts (v_start, e_start):
-  def checkVert (v_right, v_left):
-    pass
-
-  visitMirrorVerts (v_start, e_start, checkVert)
-
 
 def tagCentralEdgePath (v, e):
   while True:
@@ -216,37 +210,19 @@ def startingVertex (edge, axis):
   return loops[-1].vert
 
 def remirror (mesh, axis, source):
-  bm = bmesh.from_edit_mesh (mesh)
+  bm = bmesh.new ()
+  bm.from_mesh (mesh)
 
-  try:
-    tagCentralLoops (bm, axis)
+  tagCentralLoops (bm, axis)
 
-    for e in bm.edges:
-      if e.tag:
-        e.verts[0].tag = True
-        e.verts[1].tag = True
+  for e in bm.edges:
+    if e.tag:
+      e.verts[0].tag = True
+      e.verts[1].tag = True
 
-    for e in bm.edges:
-      if e.tag:
-        checkVerts (startingVertex (e, axis), e)
-
-    for v in bm.verts:
-      v.tag = False
-    for e in bm.edges:
-      if e.tag:
-        e.verts[0].tag = True
-        e.verts[1].tag = True
-
-    for e in bm.edges:
-      if e.tag:
-        updateVerts (startingVertex (e, axis), e, axis, source)
-
-  except:
-    for v in bm.verts:
-      v.tag = False
-    for e in bm.edges:
-      e.tag = False
-    raise
+  for e in bm.edges:
+    if e.tag:
+      updateVerts (startingVertex (e, axis), e, axis, source)
 
   for e in bm.edges:
     if e.tag:
@@ -257,6 +233,8 @@ def remirror (mesh, axis, source):
     v.tag = False
   for e in bm.edges:
     e.tag = False
+
+  bm.to_mesh (mesh)
 
 
 def register ():
