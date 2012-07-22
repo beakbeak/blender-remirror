@@ -217,17 +217,14 @@ def remirror (mesh, axis, source):
 
   for e in bm.edges:
     if e.tag:
+      e.verts[0].co[axis] = 0.
+      e.verts[1].co[axis] = 0.
       e.verts[0].tag = True
       e.verts[1].tag = True
 
   for e in bm.edges:
     if e.tag:
       updateVerts (startingVertex (e, axis), e, axis, source)
-
-  for e in bm.edges:
-    if e.tag:
-      e.verts[0].co[axis] = 0.
-      e.verts[1].co[axis] = 0.
 
   for v in bm.verts:
     v.tag = False
@@ -237,11 +234,16 @@ def remirror (mesh, axis, source):
   bm.to_mesh (mesh)
 
 
+def menuFunc (self, context):
+  self.layout.operator (Remirror.bl_idname)
+
 def register ():
   bpy.utils.register_class (Remirror)
+  bpy.types.VIEW3D_MT_object_specials.append (menuFunc)
 
 def unregister ():
   bpy.utils.unregister_class (Remirror)
+  bpy.types.VIEW3D_MT_object_specials.remove (menuFunc)
 
 
 if __name__ == "__main__":
