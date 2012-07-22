@@ -1,11 +1,28 @@
+# ##### BEGIN GPL LICENSE BLOCK #####
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation; either version 2
+#  of the License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software Foundation,
+#  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+# ##### END GPL LICENSE BLOCK #####
+
 bl_info = {
   "name": "Remirror",
   "author": "Philip Lafleur",
-  "version": (0, 1),
+  "version": (0, 9),
   "blender": (2, 6, 3),
-  "location": "View3D > Tools",
-  "description": ("Update symmetry of a mirrored mesh without "
-                  "changing topology."),
+  "location": "View3D > Specials > Remirror",
+  "description": "Non-destructively update symmetry of a mirrored mesh",
   "warning": "",
   "wiki_url": "",
   "tracker_url": "",
@@ -24,11 +41,9 @@ CENTRAL_LOOP_MARGIN = 1e-5
 class Remirror (bpy.types.Operator):
   bl_idname      = "mesh.remirror"
   bl_label       = "Remirror"
-  bl_description = ("Update symmetry of a mirrored mesh without "
-                    "changing topology")
+  bl_description = "Non-destructively update symmetry of a mirrored mesh"
   bl_options     = {'REGISTER', 'UNDO'}
 
-  # properties
   axis   = bpy.props.EnumProperty (
                name = "Axis",
                description = "Mirror axis",
@@ -57,15 +72,17 @@ class Remirror (bpy.types.Operator):
     return {'FINISHED'}
 
 
+# Return the edge following e_prev in counter-clockwise order around vertex v
+# by following the loops of the surrounding faces.
 def nextEdgeCCW (v, e_prev):
   if len (e_prev.link_loops) == 2:
-    # XXX: assumes continuous normals
+    # Assumes continuous normals
     if e_prev.link_loops[0].vert is v:
       return e_prev.link_loops[0].link_loop_prev.edge
     return e_prev.link_loops[1].link_loop_prev.edge
 
   elif len (e_prev.link_loops) == 1:
-    # XXX: assumes only two single-loop edges per vertex
+    # Assumes only two single-loop edges per vertex
     if e_prev.link_loops[0].vert is v:
       return e_prev.link_loops[0].link_loop_prev.edge
     for edge in v.link_edges:
@@ -75,15 +92,17 @@ def nextEdgeCCW (v, e_prev):
   else:
     raise ValueError (ERR_FACE_COUNT)
 
+# Return the edge following e_prev in clockwise order around vertex v
+# by following the loops of the surrounding faces.
 def nextEdgeCW (v, e_prev):
   if len (e_prev.link_loops) == 2:
-    # XXX: assumes continuous normals
+    # Assumes continuous normals
     if e_prev.link_loops[0].vert is not v:
       return e_prev.link_loops[0].link_loop_next.edge
     return e_prev.link_loops[1].link_loop_next.edge
 
   elif len (e_prev.link_loops) == 1:
-    # XXX: assumes only two single-loop edges per vertex
+    # Assumes only two single-loop edges per vertex
     if e_prev.link_loops[0].vert is not v:
       return e_prev.link_loops[0].link_loop_next.edge
     for edge in v.link_edges:
@@ -94,6 +113,15 @@ def nextEdgeCW (v, e_prev):
     raise ValueError (ERR_FACE_COUNT)
 
 
+# Call visitor(v_right, v_left) for each pair of mirrored vertices that
+# are reachable by following a path from v_start along connected edges
+# without intersecting the central edge loop(s) or any previously-visited
+# vertices.
+#
+# v_start: a vertex on a central edge loop
+# e_start: an edge on a central edge loop such that the next edge in
+#          counter-clockwise order around v_start is on the positive side
+#          of the central loop
 def visitMirrorVerts (v_start, e_start, visitor):
   er = e_start
   el = e_start
@@ -149,6 +177,9 @@ def updateVerts (v_start, e_start, axis, source):
       updatePositive if source == 'POSITIVE' else updateNegative)
 
 
+# Tag each edge along the path starting at edge e in the direction of vertex v
+# such that the path evenly divides the number of edges connected to each
+# vertex.
 def tagCentralEdgePath (v, e):
   while True:
     e.tag = True
@@ -169,6 +200,8 @@ def tagCentralEdgePath (v, e):
     if e.tag:
       return
 
+# Attempt to find and tag the edges on the central seam(s) of the bmesh bm
+# aligned with the given axis.
 def tagCentralLoops (bm, axis):
   for v in bm.verts:
     v.tag = False
@@ -200,6 +233,9 @@ def tagCentralLoops (bm, axis):
     tagCentralEdgePath (e.verts[1], e)
 
 
+# Return the endpoint of the given edge such that the next edge in
+# counter-clockwise order around the endpoint is on the positive side of
+# the given axis.
 def startingVertex (edge, axis):
   if len (edge.link_loops) != 2:
     raise ValueError (ERR_FACE_COUNT)
