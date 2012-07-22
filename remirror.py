@@ -39,7 +39,7 @@ class Remirror (bpy.types.Operator):
 
     try:
       remirror (mesh, self.source)
-    except Exception as e:
+    except ValueError as e:
       self.report ({'ERROR'}, str (e))
 
     return {'FINISHED'}
