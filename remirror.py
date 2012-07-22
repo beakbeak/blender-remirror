@@ -95,6 +95,8 @@ def visitMirrorVerts (v_start, e_start, visitor):
     el = nextEdgeCW (vl, el)
 
     if er is path[-1][0] or er.select:
+      if not (el is path[-1][1] or el.select):
+        raise ValueError ("Asymmetry encountered")
       er = path[-1][0]
       el = path[-1][1]
       vr = er.other_vert (vr)
@@ -102,11 +104,21 @@ def visitMirrorVerts (v_start, e_start, visitor):
       del path[-1]
       continue
 
+    if el is path[-1][1] or el.select:
+      raise ValueError ("Asymmetry encountered")
+
     vr = er.other_vert (vr)
+    if vr is None:
+      raise ValueError ("Couldn't follow edge path (inconsistent normals?)")
     if vr.tag or vr.select:
       vr = er.other_vert (vr)
       continue
+
     vl = el.other_vert (vl)
+    if vl is None:
+      raise ValueError ("Couldn't follow edge path (inconsistent normals?)")
+    if vl.tag or vl.select:
+      raise ValueError ("Asymmetry encountered")
 
     path.append ((er, el))
     visitor (vr, vl)
