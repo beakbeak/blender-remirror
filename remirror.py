@@ -14,6 +14,13 @@ bl_info = {
 import bpy
 import bmesh
 
+ERR_ASYMMETRY    = "Asymmetry encountered (central edge loop(s) not centered?)"
+ERR_BAD_PATH     = "Couldn't follow edge path (inconsistent normals?)"
+ERR_CENTRAL_LOOP = "Failed to find central edge loop(s). Please recenter."
+ERR_FACE_COUNT   = "Encountered edge with more than 2 faces attached."
+
+CENTRAL_LOOP_MARGIN = 1e-5
+
 class Remirror (bpy.types.Operator):
   bl_idname      = "mesh.remirror"
   bl_label       = "Remirror"
@@ -21,6 +28,13 @@ class Remirror (bpy.types.Operator):
                     "changing topology")
   bl_options     = {'REGISTER', 'UNDO'}
 
+  # properties
+  axis   = bpy.props.EnumProperty (
+               name = "Axis",
+               description = "Mirror axis",
+               items = (('X', "X", "X Axis"),
+                        ('Y', "Y", "Y Axis"),
+                        ('Z', "Z", "Z Axis")))
   source = bpy.props.EnumProperty (
                name = "Source",
                description = "Half of mesh to be mirrored on the other half",
@@ -36,7 +50,7 @@ class Remirror (bpy.types.Operator):
     mesh = bpy.context.active_object.data
 
     try:
-      remirror (mesh, self.source)
+      remirror (mesh, {'X': 0, 'Y': 1, 'Z': 2}[self.axis], self.source)
     except ValueError as e:
       self.report ({'ERROR'}, str (e))
 
@@ -59,7 +73,7 @@ def nextEdgeCCW (v, e_prev):
         return edge
 
   else:
-    raise ValueError ("Encountered edge with more than 2 faces attached")
+    raise ValueError (ERR_FACE_COUNT)
 
 def nextEdgeCW (v, e_prev):
   if len (e_prev.link_loops) == 2:
@@ -77,10 +91,9 @@ def nextEdgeCW (v, e_prev):
         return edge
 
   else:
-    raise ValueError ("Encountered edge with more than 2 faces attached")
+    raise ValueError (ERR_FACE_COUNT)
 
 
-# visit all unvisited subvertices of a particular vertex in the selected cycle
 def visitMirrorVerts (v_start, e_start, visitor):
   er = e_start
   el = e_start
@@ -92,46 +105,44 @@ def visitMirrorVerts (v_start, e_start, visitor):
     er = nextEdgeCCW (vr, er)
     el = nextEdgeCW (vl, el)
 
-    if er is path[-1][0] or er.select:
-      if not (el is path[-1][1] or el.select):
-        raise ValueError ("Asymmetry encountered")
+    if er is path[-1][0] or er.tag:
+      if not (el is path[-1][1] or el.tag):
+        raise ValueError (ERR_ASYMMETRY)
       er = path[-1][0]
       el = path[-1][1]
       vr = er.other_vert (vr)
       vl = el.other_vert (vl)
-      del path[-1]
+      path.pop ()
       continue
 
-    if el is path[-1][1] or el.select:
-      raise ValueError ("Asymmetry encountered")
+    if el is path[-1][1] or el.tag:
+      raise ValueError (ERR_ASYMMETRY)
 
     vr = er.other_vert (vr)
     if vr is None:
-      raise ValueError ("Couldn't follow edge path (inconsistent normals?)")
-    if vr.tag or vr.select:
+      raise ValueError (ERR_BAD_PATH)
+    if vr.tag:
       vr = er.other_vert (vr)
       continue
 
     vl = el.other_vert (vl)
     if vl is None:
-      raise ValueError ("Couldn't follow edge path (inconsistent normals?)")
-    if vl.tag or vl.select:
-      raise ValueError ("Asymmetry encountered")
+      raise ValueError (ERR_BAD_PATH)
+    if vl.tag:
+      raise ValueError (ERR_ASYMMETRY)
 
     path.append ((er, el))
     visitor (vr, vl)
     vr.tag = True
 
-def updateVerts (v_start, e_start, source = 'POSITIVE'):
+def updateVerts (v_start, e_start, axis, source):
   def updatePositive (v_right, v_left):
-    v_left.co.x = -v_right.co.x
-    v_left.co.y = v_right.co.y
-    v_left.co.z = v_right.co.z
+    v_left.co = v_right.co
+    v_left.co[axis] = -v_right.co[axis]
 
   def updateNegative (v_right, v_left):
-    v_right.co.x = -v_left.co.x
-    v_right.co.y = v_left.co.y
-    v_right.co.z = v_left.co.z
+    v_right.co = v_left.co
+    v_right.co[axis] = -v_left.co[axis]
 
   visitMirrorVerts (
       v_start, e_start,
@@ -144,42 +155,108 @@ def checkVerts (v_start, e_start):
   visitMirrorVerts (v_start, e_start, checkVert)
 
 
-def startingVertex (edge, axis = 0):
+def tagCentralEdgePath (v, e):
+  while True:
+    e.tag = True
+
+    if len (v.link_edges) % 2:
+      if len (v.link_faces) == len (v.link_edges):
+        raise ValueError (ERR_CENTRAL_LOOP)
+      else:
+        return
+
+    for i in range (len (v.link_edges) // 2):
+      e = nextEdgeCCW (v, e)
+
+    v = e.other_vert (v)
+    if v is None:
+      raise ValueError (ERR_BAD_PATH)
+
+    if e.tag:
+      return
+
+def tagCentralLoops (bm, axis):
+  for v in bm.verts:
+    v.tag = False
+  for e in bm.edges:
+    e.tag = False
+
+  verts = []
+  edges = []
+
+  for v in bm.verts:
+    if v.co[axis] < CENTRAL_LOOP_MARGIN and v.co[axis] > -CENTRAL_LOOP_MARGIN:
+      v.tag = True
+      verts.append (v)
+
+  for v in verts:
+    for e in v.link_edges:
+      if e.other_vert (v).tag:
+        e.tag = True
+        edges.append (e)
+
+  for v in verts:
+    v.tag = False
+
+  if not (edges and verts):
+    raise ValueError (ERR_CENTRAL_LOOP)
+
+  for e in edges:
+    tagCentralEdgePath (e.verts[0], e)
+    tagCentralEdgePath (e.verts[1], e)
+
+
+def startingVertex (edge, axis):
   if len (edge.link_loops) != 2:
-    raise ValueError ("Number of faces attached to selected edge is not 2")
+    raise ValueError (ERR_FACE_COUNT)
 
   loops = sorted (edge.link_loops,
                   key = lambda loop: loop.face.calc_center_median ()[axis])
 
   return loops[-1].vert
 
-def remirror (mesh, source = 'POSITIVE'):
+def remirror (mesh, axis, source):
   bm = bmesh.from_edit_mesh (mesh)
 
   try:
-    for v in bm.verts:
-      v.tag = False
+    tagCentralLoops (bm, axis)
 
     for e in bm.edges:
-      if e.select:
-        checkVerts (startingVertex (e), e)
+      if e.tag:
+        e.verts[0].tag = True
+        e.verts[1].tag = True
+
+    for e in bm.edges:
+      if e.tag:
+        checkVerts (startingVertex (e, axis), e)
 
     for v in bm.verts:
       v.tag = False
+    for e in bm.edges:
+      if e.tag:
+        e.verts[0].tag = True
+        e.verts[1].tag = True
 
     for e in bm.edges:
-      if e.select:
-        updateVerts (startingVertex (e), e, source)
+      if e.tag:
+        updateVerts (startingVertex (e, axis), e, axis, source)
 
   except:
     for v in bm.verts:
       v.tag = False
+    for e in bm.edges:
+      e.tag = False
     raise
+
+  for e in bm.edges:
+    if e.tag:
+      e.verts[0].co[axis] = 0.
+      e.verts[1].co[axis] = 0.
 
   for v in bm.verts:
     v.tag = False
-    if v.select:
-      v.co.x = 0.
+  for e in bm.edges:
+    e.tag = False
 
 
 def register ():
