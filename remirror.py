@@ -74,9 +74,11 @@ class Remirror (bpy.types.Operator):
         return {'FINISHED'}
 
 
-# Return the edge following e_prev in counter-clockwise order around vertex v
-# by following the loops of the surrounding faces.
 def nextEdgeCCW (v, e_prev):
+    """
+    Return the edge following e_prev in counter-clockwise order around vertex v
+    by following the winding of the surrounding faces.
+    """
     if len (e_prev.link_loops) == 2:
         # Assumes continuous normals
         if e_prev.link_loops[0].vert is v:
@@ -94,9 +96,11 @@ def nextEdgeCCW (v, e_prev):
     else:
         raise ValueError (ERR_FACE_COUNT)
 
-# Return the edge following e_prev in clockwise order around vertex v
-# by following the loops of the surrounding faces.
 def nextEdgeCW (v, e_prev):
+    """
+    Return the edge following e_prev in clockwise order around vertex v
+    by following the winding of the surrounding faces.
+    """
     if len (e_prev.link_loops) == 2:
         # Assumes continuous normals
         if e_prev.link_loops[0].vert is not v:
@@ -115,16 +119,18 @@ def nextEdgeCW (v, e_prev):
         raise ValueError (ERR_FACE_COUNT)
 
 
-# Call visitor(v_right, v_left) for each pair of mirrored vertices that
-# are reachable by following a path from v_start along connected edges
-# without intersecting the central edge loop(s) or any previously-visited
-# vertices.
-#
-# v_start: a vertex on a central edge loop
-# e_start: an edge on a central edge loop such that the next edge in
-#          counter-clockwise order around v_start is on the positive side
-#          of the central loop
 def visitMirrorVerts (v_start, e_start, visitor):
+    """
+    Call visitor(v_right, v_left) for each pair of mirrored vertices that
+    are reachable by following a path from v_start along connected edges
+    without intersecting the central edge loop(s) or any previously-visited
+    vertices.
+
+    v_start: a vertex on a central edge loop
+    e_start: an edge on a central edge loop such that the next edge in
+             counter-clockwise order around v_start is on the positive side
+             of the central loop
+    """
     er = e_start
     el = e_start
     vr = v_start
@@ -182,10 +188,12 @@ def updateVerts (v_start, e_start, axis, source):
         updatePositive if source == 'POSITIVE' else updateNegative)
 
 
-# Tag each edge along the path starting at edge e in the direction of vertex v
-# such that the path evenly divides the number of edges connected to each
-# vertex.
 def tagCentralEdgePath (v, e):
+    """
+    Tag each edge along the path starting at edge e in the direction of vertex v
+    such that the path evenly divides the number of edges connected to each
+    vertex.
+    """
     while True:
         e.tag = True
 
@@ -205,9 +213,11 @@ def tagCentralEdgePath (v, e):
         if e.tag:
             return
 
-# Attempt to find and tag the edges on the central seam(s) of the bmesh bm
-# aligned with the given axis.
 def tagCentralLoops (bm, axis):
+    """
+    Attempt to find and tag the edges on the central loop(s) of the bmesh bm
+    aligned with the given axis.
+    """
     for v in bm.verts:
         v.tag = False
     for e in bm.edges:
@@ -239,10 +249,12 @@ def tagCentralLoops (bm, axis):
         tagCentralEdgePath (e.verts[1], e)
 
 
-# Return the endpoint of the given edge such that the next edge in
-# counter-clockwise order around the endpoint is on the positive side of
-# the given axis.
 def startingVertex (edge, axis):
+    """
+    Return the endpoint of the given edge such that the next edge in
+    counter-clockwise order around the endpoint is on the positive side of
+    the given axis.
+    """
     if len (edge.link_loops) != 2:
         raise ValueError (ERR_FACE_COUNT)
 
