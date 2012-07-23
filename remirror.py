@@ -286,6 +286,7 @@ def remirror (mesh, axis, source):
         e.tag = False
 
     bm.to_mesh (mesh)
+    mesh.update (calc_tessface = True)
 
 
 def menuFunc (self, context):
