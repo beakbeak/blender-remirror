@@ -34,7 +34,8 @@ bl_info = {
     "warning": "",
     "wiki_url": ("http://wiki.blender.org/index.php/Extensions:2.6"
                  "/Py/Scripts/Mesh/Remirror"),
-    "tracker_url": "",
+    "tracker_url": ("http://projects.blender.org/tracker/index.php?"
+                    "func=detail&aid=32166&group_id=153&atid=467"),
     "category": "Mesh"}
 
 import bpy
