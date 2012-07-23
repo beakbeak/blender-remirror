@@ -23,7 +23,7 @@ bl_info = {
     "author": "Philip Lafleur",
     "version": (0, 9),
     "blender": (2, 6, 3),
-    "location": "View3D > Specials > Remirror",
+    "location": "View3D > Object > Mirror > Remirror",
     "description": "Non-destructively update symmetry of a mirrored mesh",
     "warning": "",
     "wiki_url": "",
@@ -293,11 +293,11 @@ def menuFunc (self, context):
 
 def register ():
     bpy.utils.register_class (Remirror)
-    bpy.types.VIEW3D_MT_object_specials.append (menuFunc)
+    bpy.types.VIEW3D_MT_mirror.append (menuFunc)
 
 def unregister ():
+    bpy.types.VIEW3D_MT_mirror.remove (menuFunc)
     bpy.utils.unregister_class (Remirror)
-    bpy.types.VIEW3D_MT_object_specials.remove (menuFunc)
 
 
 if __name__ == "__main__":
