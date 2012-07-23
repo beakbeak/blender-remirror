@@ -1,22 +1,28 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
+#  ***** BEGIN GPL LICENSE BLOCK *****
 #
-# ##### BEGIN GPL LICENSE BLOCK #####
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU General Public License
-#  as published by the Free Software Foundation; either version 2
-#  of the License, or (at your option) any later version.
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
 #
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
 #
 #  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software Foundation,
-#  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# ##### END GPL LICENSE BLOCK #####
+#  The Original Code is Copyright (C) 2012 by Philip Lafleur.
+#  All rights reserved.
+#
+#  The Original Code is: all of this file.
+#
+#  Contributor(s): none yet.
+#
+#  ***** END GPL LICENSE BLOCK *****
 
 bl_info = {
     "name": "Remirror",
@@ -26,7 +32,8 @@ bl_info = {
     "location": "View3D > Object > Mirror > Remirror",
     "description": "Non-destructively update symmetry of a mirrored mesh",
     "warning": "",
-    "wiki_url": "",
+    "wiki_url": ("http://wiki.blender.org/index.php/Extensions:2.6"
+                 "/Py/Scripts/Mesh/Remirror"),
     "tracker_url": "",
     "category": "Mesh"}
 
