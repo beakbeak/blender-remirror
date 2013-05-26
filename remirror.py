@@ -68,18 +68,37 @@ class Remirror (bpy.types.Operator):
 
     @classmethod
     def poll (cls, context):
-        obj = context.active_object
-        return (obj and obj.type == 'MESH' and context.mode == 'OBJECT')
+        obj = getObject (context)
+        return obj and obj.type == 'MESH'
 
     def execute (self, context):
-        mesh = bpy.context.active_object.data
+        obj = getObject (context)
+        axis = {'X': 0, 'Y': 1, 'Z': 2}[self.axis]
+
+        def updatePosition (v_right, v_left):
+            v_left.co = v_right.co
+            v_left.co[axis] = -v_right.co[axis]
+
+        def swapArgs (f):
+            def swapped (a, b):
+                return f (b, a)
+            return swapped
+
+        visitor = updatePosition
+        if self.source == 'NEGATIVE':
+            visitor = swapArgs (visitor)
 
         try:
-            remirror (mesh, {'X': 0, 'Y': 1, 'Z': 2}[self.axis], self.source)
+            remirror (obj, axis, visitor)
         except ValueError as e:
             self.report ({'ERROR'}, str (e))
 
         return {'FINISHED'}
+
+def getObject (context):
+    if context.mode == 'OBJECT':
+        return context.active_object
+    return None
 
 
 def nextEdgeCCW (v, e_prev):
@@ -182,19 +201,6 @@ def visitMirrorVerts (v_start, e_start, visitor):
         vr.tag = True
         vl.tag = True
 
-def updateVerts (v_start, e_start, axis, source):
-    def updatePositive (v_right, v_left):
-        v_left.co = v_right.co
-        v_left.co[axis] = -v_right.co[axis]
-
-    def updateNegative (v_right, v_left):
-        v_right.co = v_left.co
-        v_right.co[axis] = -v_left.co[axis]
-
-    visitMirrorVerts (
-        v_start, e_start,
-        updatePositive if source == 'POSITIVE' else updateNegative)
-
 
 def tagCentralEdgePath (v, e):
     """
@@ -271,7 +277,8 @@ def startingVertex (edge, axis):
 
     return loops[-1].vert
 
-def remirror (mesh, axis, source):
+def remirror (obj, axis, visitor):
+    mesh = obj.data
     bm = bmesh.new ()
     bm.from_mesh (mesh)
 
@@ -286,7 +293,7 @@ def remirror (mesh, axis, source):
 
     for e in bm.edges:
         if e.tag:
-            updateVerts (startingVertex (e, axis), e, axis, source)
+            visitMirrorVerts (startingVertex (e, axis), e, visitor)
 
     for v in bm.verts:
         v.tag = False
