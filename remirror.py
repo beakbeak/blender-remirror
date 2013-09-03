@@ -74,17 +74,27 @@ class Remirror (bpy.types.Operator):
     def execute (self, context):
         obj = getObject (context)
         axis = {'X': 0, 'Y': 1, 'Z': 2}[self.axis]
+        active_group = obj.vertex_groups.active if obj.vertex_groups else None
 
         def updatePosition (v_right, v_left):
             v_left.co = v_right.co
             v_left.co[axis] = -v_right.co[axis]
+
+        def updateWeight (v_right, v_left):
+            weight = 0.
+            try:
+                weight = active_group.weight (v_right.index)
+            except:
+                pass
+            active_group.add ((v_left.index,), weight, 'REPLACE')
 
         def swapArgs (f):
             def swapped (a, b):
                 return f (b, a)
             return swapped
 
-        visitor = updatePosition
+        visitor = (updateWeight if context.mode == 'PAINT_WEIGHT'
+                   else updatePosition)
         if self.source == 'NEGATIVE':
             visitor = swapArgs (visitor)
 
@@ -98,6 +108,8 @@ class Remirror (bpy.types.Operator):
 def getObject (context):
     if context.mode == 'OBJECT':
         return context.active_object
+    elif context.mode == 'PAINT_WEIGHT':
+        return context.weight_paint_object
     return None
 
 
@@ -300,8 +312,8 @@ def remirror (obj, axis, visitor):
     for e in bm.edges:
         e.tag = False
 
-    bm.to_mesh (mesh)
-    mesh.update (calc_tessface = True)
+#    bm.to_mesh (mesh)
+#    mesh.update (calc_tessface = True)
 
 
 def menuFunc (self, context):
