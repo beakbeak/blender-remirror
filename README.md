@@ -29,11 +29,11 @@ This is OK                     | This won't work
 
 ## Usage with Multires
 
-1. Duplicate the Multires object. (_Shift-D_)
+1. Duplicate the Multires object. (<kbd>Shift</kbd>+<kbd>D</kbd>)
 2. With the duplicate selected, make sure the Multires _Preview_ field is set to the desired resolution, then click _Apply_.
 3. Apply Remirror to the duplicate. (_Object_ > _Mirror_ > _Remirror_)
 4. Select the duplicate, (_right mouse button_)
-5. Then select the original. (_Shift + right mouse button_)
+5. Then select the original. (<kbd>Shift</kbd> + _right mouse button_)
 6. Click _Reshape_ on the Multires modifier panel.
 
 ## Known Issues
